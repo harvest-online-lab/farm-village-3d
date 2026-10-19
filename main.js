@@ -30,8 +30,10 @@ mesh(new THREE.CylinderGeometry(.25,.36,2.6,7),wood,0,1.3,0,group);
 ball(1.35,leaves[0],0,3.2,0,group);ball(1.1,leaves[1],-.8,2.9,.25,group);ball(1.08,leaves[2],.6,3.55,-.3,group)}
 for(const [x,z,s] of [[-20,-22,1.2],[-22,14,1],[20,14,1.2],[19,-22,1],[-23,-1,1],[23,0,1.3],[8,21,1],[-5,24,1],[5,-23,1],[-19,24,1]])tree(x,z,s);
 function fence(x,z,alongX=true){box(alongX?2.1:.16,.8,alongX?.16:2.1,wood,x,.55,z);box(.18,1.1,.18,wood,x+(alongX?1:0),.55,z+(alongX?0:1))}
+const originalFenceMeshes=[];const fenceStart=scene.children.length;
 for(let i=0;i<9;i++){fence(3+i*2,3,true);fence(3+i*2,20,true)}
 for(let i=0;i<8;i++){fence(3,4+i*2,false);fence(21,4+i*2,false)}
+originalFenceMeshes.push(...scene.children.slice(fenceStart));
 const plots=[];for(let x=6;x<19;x+=2.5)for(let z=6;z<18;z+=2.5){box(2,.11,2,soil,x,.06,z);plots.push({x,z,grown:false})}
 const flowers=[mat('#ffd878'),mat('#ff9eaf'),mat('#e9d3ff')];for(let i=0;i<85;i++){let x=Math.sin(i*11.8)*31,z=Math.cos(i*8.3)*30;if(Math.abs(x)<3||Math.abs(z+7)<3||(x>3&&x<23&&z>3&&z<22))continue;mesh(new THREE.CylinderGeometry(.025,.025,.22,4),leaves[1],x,.12,z);ball(.10,flowers[i%3],x,.27,z)}
 const player=new THREE.Group();scene.add(player);const blue=mat('#548bc4'),skin=mat('#efc293'),pants=mat('#40577f'),hat=mat('#5674a2');
@@ -262,7 +264,7 @@ async function loadVillage08(){
   const shop=await put('city-kit-suburban/building-type-j.glb',-15,4,5.1,Math.PI/2);if(shop)built++;
   // Real wooden fencing around the farm, with gaps for walking.
   const fencePath='nature-kit/fence-simple.glb';
-  for(const [x,z,rot] of [[4,3,0],[8,3,0],[12,3,0],[16,3,0],[20,3,0],[4,20,0],[8,20,0],[12,20,0],[16,20,0],[20,20,0],[3,7,Math.PI/2],[3,11,Math.PI/2],[3,15,Math.PI/2],[21,7,Math.PI/2],[21,11,Math.PI/2],[21,15,Math.PI/2]]){if(await put(fencePath,x,z,1.15,rot))built++}
+  for(const [x,z,rot] of [[4,3,0],[8,3,0],[12,3,0],[16,3,0],[20,3,0],[4,20,0],[8,20,0],[12,20,0],[16,20,0],[20,20,0],[3,7,Math.PI/2],[3,11,Math.PI/2],[3,15,Math.PI/2],[21,7,Math.PI/2],[21,11,Math.PI/2],[21,15,Math.PI/2]]){if(await put(fencePath,x,z,1.15,rot)){built++;originalFenceMeshes.forEach(m=>m.visible=false)}}
   // Curved-looking village path: cobblestone stepping stones and borders along two existing roads.
   const stonePath='city-kit-suburban/path-stones-messy.glb';
   const points=[];for(let z=-29;z<=27;z+=3.4)points.push([Math.sin(z*.12)*.42,z,0]);
@@ -277,3 +279,58 @@ async function loadVillage08(){
 }
 loadVillage08();
 hud.innerHTML='🌾 <b>FARM VILLAGE 3D</b><small style="display:block;font-weight:400;opacity:.85">TASK 08 · หมู่บ้านและถนนหิน</small>';
+
+
+/* TASK 09 — continuous village cobblestone paths, market square, greenery */
+(function village09(){
+  const cobbles=[0xcbbba0,0xd7c7a9,0xb4aa96,0xe3d4b9,0xbdb39f].map(color=>new THREE.MeshStandardMaterial({color,roughness:1}));
+  const border=mat('#b9ad91'),pebble=mat('#e5d6b7');
+  // Slightly lift existing road slabs and overlay coherent cobblestone coverage.
+  const roadParts=[];
+  const seed=(n)=>{let t=Math.sin(n*127.1+41.2)*43758.5453;return t-Math.floor(t)};
+  function stonesAlong(isNorthSouth){
+    const count=isNorthSouth?58:57;
+    const length=isNorthSouth?66:62;
+    const width=isNorthSouth?3.55:2.9;
+    const baseZ=isNorthSouth?0:-7;
+    const rows=5;
+    const geom=new THREE.BoxGeometry(.68,.075,.55);
+    const meshes=cobbles.map(m=>{const inst=new THREE.InstancedMesh(geom,m,count*rows);inst.castShadow=false;inst.receiveShadow=true;scene.add(inst);roadParts.push(inst);return inst});
+    const indices=[0,0,0,0,0],dummy=new THREE.Object3D();
+    for(let i=0;i<count;i++)for(let j=0;j<rows;j++){
+      const s=i*rows+j;const along=(i/(count-1)-.5)*length;
+      const across=(j-(rows-1)/2)*width/rows+(i%2)*.18;
+      const x=isNorthSouth?across:along;
+      const z=isNorthSouth?along:baseZ+across;
+      // Skip central junction overlap to reduce z fighting.
+      if(!isNorthSouth&&Math.abs(x)<2.2)continue;
+      dummy.position.set(x+(seed(s+31)-.5)*.1,.071,z+(seed(s+81)-.5)*.1);
+      dummy.rotation.set(0,(seed(s+121)-.5)*.19,0);
+      dummy.scale.set(.89+seed(s+9)*.17,1,.91+seed(s+18)*.14);dummy.updateMatrix();
+      const idx=Math.floor(seed(s+23)*meshes.length);meshes[idx].setMatrixAt(indices[idx]++,dummy.matrix);
+    }
+    meshes.forEach((m,i)=>{m.count=indices[i];m.instanceMatrix.needsUpdate=true});
+    // Narrow curb strips define pedestrian road edges.
+    for(const side of [-1,1]){
+      const b=isNorthSouth?box(.16,.13,66,border,side*2.02,.055,0):box(62,.13,.16,border,0,.055,-7+side*1.72);
+      b.castShadow=false;
+    }
+  }
+  stonesAlong(true);stonesAlong(false);
+  // Market square: rounded gravel plaza adjacent to the existing stall.
+  const plaza=mesh(new THREE.CylinderGeometry(6.1,6.1,.045,20),pebble,-9,.024,-4);
+  plaza.scale.z=.67;plaza.castShadow=false;plaza.receiveShadow=true;
+  // Seeded flowerbeds placed off the central road and away from planting plots.
+  const leaf=mat('#4d9557'),petal=[mat('#fff3cc'),mat('#f8b7bd'),mat('#f6da69')];
+  const gardens=[[-17,-5],[-16,-10],[-6,-12],[6,-12],[16,-10],[-19,5],[-8,9],[-6,17]];
+  for(const [gx,gz] of gardens){
+    const soilPatch=mesh(new THREE.CylinderGeometry(.75,.84,.12,9),soil,gx,.03,gz);
+    for(let j=0;j<6;j++){
+      const a=j*2.399,rad=.15+(j%3)*.21,x=gx+Math.cos(a)*rad,z=gz+Math.sin(a)*rad;
+      mesh(new THREE.CylinderGeometry(.035,.045,.35,5),leaf,x,.25,z);
+      const blossom=ball(.16,petal[(j+Math.abs(gx))%3],x,.46,z);blossom.scale.y=.65;
+    }
+  }
+  // A stone plaza and flowers should not prevent walking or planting.
+  hud.innerHTML='🌾 <b>FARM VILLAGE 3D</b><small style="display:block;font-weight:400;opacity:.85">TASK 09 · หมู่บ้านและทางเดินหิน</small>';
+})();
