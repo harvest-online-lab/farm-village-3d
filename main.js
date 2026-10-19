@@ -193,17 +193,17 @@ const ui6=document.createElement('style');ui6.textContent=`
 }
 @media(max-width:380px){.fv-hotbar{bottom:115px!important;transform:translateX(-50%) scale(.75)!important}.fv-pad{transform:scale(.69)!important}}
 `;document.head.append(ui6);
-hud.innerHTML='🌾 <b>FARM VILLAGE 3D</b><small style="display:block;font-weight:400;opacity:.85">TASK 06 · หมู่บ้านฟาร์ม</small>';
+hud.innerHTML='🌾 <b>FARM VILLAGE 3D</b><small style="display:block;font-weight:400;opacity:.85">TASK 07 · โมเดล 3D CC0</small>';
 cameraHint.style.display='none';
 
 
 /* TASK 07: genuine Kenney CC0 GLB assets (remote source; graceful fallback). */
 async function importKenneyModels(){
-  const status=document.createElement('div');status.style.cssText='position:fixed;bottom:175px;right:12px;z-index:5;background:#173e38d9;color:#fff;border-radius:10px;padding:6px 9px;font:11px system-ui;pointer-events:none';status.textContent='🌿 โหลดโมเดล CC0...';document.body.append(status);
+  const status=document.createElement('div');status.style.cssText='position:fixed;bottom:175px;right:12px;z-index:5;background:#173e38d9;color:#fff;border-radius:10px;padding:6px 9px;font:11px system-ui;pointer-events:none';status.textContent='🌿 กำลังโหลดโมเดล TASK 07...';document.body.append(status);
   try{
     const {GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');
     const loader=new GLTFLoader();
-    const root='https://hidencod.github.io/tge-assets/packs/';
+    const root='https://cdn.jsdelivr.net/gh/Hidencod/tge-assets@main/packs/';
     const load=(path)=>new Promise((resolve,reject)=>loader.load(root+path,resolve,undefined,reject));
     async function place(path,coords,height,replace=null){
       try{
@@ -221,7 +221,7 @@ async function importKenneyModels(){
     // Replace the block farmer only after the actual GLB is successfully loaded.
     const farmer=await place('mini-characters/character-male-a.glb',[player.position.x,player.position.z],2.75);
     if(farmer){
-      const model=farmer;player.add(model);scene.remove(model);model.position.set(0,0,0);
+      const model=farmer;player.add(model);model.position.set(0,0,0);
       model.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(model);
       model.position.y-=b.min.y;player.children.forEach(child=>{if(child!==model)child.visible=false});
       status.textContent='✓ ตัวละคร Kenney CC0';
@@ -237,6 +237,6 @@ async function importKenneyModels(){
     for(let i=0;i<npcSpots.length;i++)await place('mini-characters/character-female-'+['a','b','c'][i]+'.glb',npcSpots[i],2.5);
     status.textContent='🌿 โมเดล CC0 '+(loaded+(farmer?1:0))+' ชิ้น';
     setTimeout(()=>status.remove(),5500);
-  }catch(e){console.warn('GLTFLoader unavailable; procedural scene preserved',e);status.textContent='ใช้โมเดลเดิม (โหลด CC0 ไม่สำเร็จ)';setTimeout(()=>status.remove(),5500)}
+  }catch(e){console.warn('GLTFLoader unavailable; procedural scene preserved',e);status.textContent='โหลดโมเดลไม่สำเร็จ: '+String(e?.message||e).slice(0,95);setTimeout(()=>status.remove(),5500)}
 }
 importKenneyModels();
