@@ -46,8 +46,29 @@ const keys=new Set();for(const [key,label,col,row] of [['up','▲',2,1],['left',
 const plant=document.createElement('button');plant.textContent='🌱 ปลูก';plant.style.cssText='position:fixed;z-index:6;right:20px;bottom:32px;border:2px solid #fff8;background:#ffe4a9;border-radius:16px;padding:15px 19px;color:#312a1e;font:700 17px system-ui';document.body.append(plant);
 let count=0;plant.onclick=()=>{let nearest=null,d=3.1;for(const p of plots){const n=Math.hypot(p.x-player.position.x,p.z-player.position.z);if(!p.grown&&n<d){d=n;nearest=p}}if(!nearest){tip.textContent='เดินเข้าใกล้แปลงผักก่อน';return}nearest.grown=true;const stem=mat('#3e9348');mesh(new THREE.CylinderGeometry(.06,.08,.6,5),stem,nearest.x,.38,nearest.z);for(let i=0;i<3;i++){const leaf=ball(.24,leaves[i%3],nearest.x+Math.sin(i*2.1)*.25,.53,nearest.z+Math.cos(i*2.1)*.25);leaf.scale.y=.55}tip.textContent='ปลูกพืช '+(++count)+' / '+plots.length};
 const map={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',a:'left',s:'down',d:'right'};addEventListener('keydown',e=>{if(map[e.key]){keys.add(map[e.key]);e.preventDefault()}});addEventListener('keyup',e=>{if(map[e.key])keys.delete(map[e.key])});addEventListener('blur',()=>keys.clear());
+
+/* TASK 04 — orbit camera: drag empty 3D scene to rotate; pinch to zoom. */
+let orbitYaw=.59,orbitPitch=.59,orbitDistance=23;
+const touches=new Map();let lastPinch=0;
+renderer.domElement.addEventListener('pointerdown',e=>{renderer.domElement.setPointerCapture(e.pointerId);touches.set(e.pointerId,{x:e.clientX,y:e.clientY});lastPinch=0});
+renderer.domElement.addEventListener('pointermove',e=>{if(!touches.has(e.pointerId))return;const prev=touches.get(e.pointerId);const dx=e.clientX-prev.x,dy=e.clientY-prev.y;touches.set(e.pointerId,{x:e.clientX,y:e.clientY});if(touches.size===1){orbitYaw-=dx*.008;orbitPitch=THREE.MathUtils.clamp(orbitPitch+dy*.006,.20,1.12)}else if(touches.size===2){const p=[...touches.values()],d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);if(lastPinch)orbitDistance=THREE.MathUtils.clamp(orbitDistance*lastPinch/d,10,38);lastPinch=d}});
+for(const eventName of ['pointerup','pointercancel','lostpointercapture'])renderer.domElement.addEventListener(eventName,e=>{touches.delete(e.pointerId);lastPinch=0});
+renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();orbitDistance=THREE.MathUtils.clamp(orbitDistance+e.deltaY*.015,10,38)},{passive:false});
+const cameraHint=document.createElement('div');cameraHint.textContent='👆 ลากฉากเพื่อหมุนกล้อง · 2 นิ้วซูม';cameraHint.style.cssText='position:fixed;z-index:4;top:318px;right:12px;background:#173e38cc;color:white;border-radius:10px;padding:7px 9px;font:11px system-ui;pointer-events:none';document.body.append(cameraHint);
+// Soft varied terrain patches, wildflowers, decorative rocks and village details.
+const moss=[mat('#8bc47b'),mat('#93c881'),mat('#70ad68')];
+for(let i=0;i<85;i++){const x=Math.sin(i*17.23)*35,z=Math.cos(i*12.71)*35;if(Math.abs(x)<3||Math.abs(z+7)<3||(x>3&&x<23&&z>3&&z<22))continue;const r=.65+(i%7)*.23;const ground=mesh(new THREE.CircleGeometry(r,10),moss[i%3],x,-.077,z);ground.rotation.x=-Math.PI/2;ground.scale.y=.7}
+const flowerPetals=[mat('#fff3e2'),mat('#f6b1c7'),mat('#e6c5fa')];
+for(let i=0;i<65;i++){const x=Math.sin(i*8.14+2)*34,z=Math.cos(i*7.23+3)*34;if(Math.abs(x)<3||Math.abs(z+7)<3||(x>3&&x<23&&z>3&&z<22))continue;const group=new THREE.Group();group.position.set(x,0,z);scene.add(group);mesh(new THREE.CylinderGeometry(.022,.03,.27,4),leaves[1],0,.16,0,group);for(let p=0;p<5;p++){const a=p*Math.PI*2/5;ball(.10,flowerPetals[i%3],Math.cos(a)*.13,.32,Math.sin(a)*.13,group)}ball(.07,flowers[0],0,.33,0,group)}
+// Small orchard near the north path
+for(let i=0;i<6;i++){const x=5+i*2.6,z=-25+(i%2)*1.2;tree(x,z,.72);for(let j=0;j<3;j++)ball(.13,red,x+Math.sin(i+j*3)*.6,2.1+j*.24,z+Math.cos(i+j*2)*.5)}
+// Wooden carts, crates, hay bales
+const hay=mat('#dfb65d');
+for(let i=0;i<6;i++)box(1.1,.7,.85,hay,-17+(i%3)*1.3,.35,6+Math.floor(i/3)*1.2);
+box(2,.23,1.4,wood,-10,.65,-9);for(const x of [-10.8,-9.2])for(const z of [-9.5,-8.5])mesh(new THREE.CylinderGeometry(.33,.33,.18,9),darkWood,x,.37,z).rotation.z=Math.PI/2;
+
 let previous=performance.now(),elapsed=0;function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-previous)/1000);previous=now;const dx=Number(keys.has('right'))-Number(keys.has('left')),dz=Number(keys.has('down'))-Number(keys.has('up'));const len=Math.hypot(dx,dz);if(len){player.position.x=THREE.MathUtils.clamp(player.position.x+dx/len*5*dt,-36,36);player.position.z=THREE.MathUtils.clamp(player.position.z+dz/len*5*dt,-36,36);player.rotation.y=Math.atan2(dx,dz);elapsed+=dt*11;legs[0].rotation.x=Math.sin(elapsed)*.48;legs[1].rotation.x=-Math.sin(elapsed)*.48;arms[0].rotation.x=-Math.sin(elapsed)*.32;arms[1].rotation.x=Math.sin(elapsed)*.32}else{for(const limb of [...legs,...arms])limb.rotation.x*=.78}
-camera.position.lerp(new THREE.Vector3(player.position.x+12,15,player.position.z+18),Math.min(1,dt*4));camera.lookAt(player.position.x,1,player.position.z);renderer.render(scene,camera)}requestAnimationFrame(frame);addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+camera.position.lerp(new THREE.Vector3(player.position.x+Math.sin(orbitYaw)*orbitDistance,Math.sin(orbitPitch)*orbitDistance+1.4,player.position.z+Math.cos(orbitYaw)*Math.cos(orbitPitch)*orbitDistance),Math.min(1,dt*5));camera.lookAt(player.position.x,1.35,player.position.z);renderer.render(scene,camera)}requestAnimationFrame(frame);addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 
 /* TASK 03 — richer handcrafted village scenery and optional procedural music.
    All geometry and audio are original, generated in-browser; no third-party model or song is embedded. */
