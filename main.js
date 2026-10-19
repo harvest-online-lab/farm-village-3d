@@ -334,3 +334,48 @@ hud.innerHTML='🌾 <b>FARM VILLAGE 3D</b><small style="display:block;font-weigh
   // A stone plaza and flowers should not prevent walking or planting.
   hud.innerHTML='🌾 <b>FARM VILLAGE 3D</b><small style="display:block;font-weight:400;opacity:.85">TASK 09 · หมู่บ้านและทางเดินหิน</small>';
 })();
+
+
+/* TASK 10 — Living Village: landscaped zones and roaming farm animals */
+(function livingVillage10(){
+ const green=mat('#5d9c4d'),flowerWhite=mat('#fff2d8'),flowerPink=mat('#f7b8bd'),dark=mat('#3e352c'),animalWhite=mat('#f3e7cd'),animalBrown=mat('#b67e52'),animalPink=mat('#e9b8a8'),beak=mat('#e5a844');
+ const hash=n=>{const t=Math.sin(n*91.17+17.4)*15327.83;return t-Math.floor(t)};
+ const clear=(x,z)=>Math.abs(x)>3.3&&Math.abs(z+7)>3.3&&!(x>2&&x<23&&z>2&&z<22)&&!(x>-20&&x<-6&&z>-19&&z<-11)&&!(x>7&&x<19&&z>-20&&z<-11)&&!(x>-20&&x<-8&&z>6&&z<16);
+ // Grass is deliberately arranged in planted belts, not scattered across walkways.
+ const tufts=[];for(let i=0;i<120;i++){const x=-29+hash(i+3)*58,z=-27+hash(i+201)*54;if(clear(x,z))tufts.push([x,z,i])}
+ const ggeo=new THREE.ConeGeometry(.21,.58,4);const grassMesh=new THREE.InstancedMesh(ggeo,green,tufts.length);grassMesh.castShadow=false;grassMesh.receiveShadow=false;scene.add(grassMesh);
+ const dummy=new THREE.Object3D();tufts.forEach(([x,z,i],k)=>{dummy.position.set(x,.24,z);dummy.rotation.y=hash(i+47)*Math.PI;dummy.scale.set(.6+hash(i+79),.7+hash(i+109),.6+hash(i+117));dummy.updateMatrix();grassMesh.setMatrixAt(k,dummy.matrix)});grassMesh.instanceMatrix.needsUpdate=true;
+ // Flower clusters along the outside of the village lanes.
+ for(let i=0;i<36;i++){const x=-28+hash(i+300)*56,z=-26+hash(i+700)*52;if(!clear(x,z))continue;const stem=mesh(new THREE.CylinderGeometry(.025,.03,.32,5),green,x,.19,z);stem.castShadow=false;const blossom=ball(.11,i%3===0?flowerWhite:flowerPink,x,.39,z);blossom.castShadow=false}
+ // Small fruit trees and bushes mark the outer perimeter of the village.
+ for(const [x,z] of [[-27,-22],[-26,17],[27,-22],[26,22],[-23,24],[25,-1],[-24,-2]]){
+   const trunk=mesh(new THREE.CylinderGeometry(.23,.32,1.6,7),wood,x,.8,z);
+   const crown=ball(1.38,leaves[Math.abs(x+z)%leaves.length],x,2.5,z);crown.scale.set(1.1,.88,1.05);
+ }
+ const herd=[];
+ function animal(kind,x,z){
+   const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+   const chicken=kind==='chicken',pig=kind==='pig';
+   const coat=chicken?animalWhite:pig?animalPink:animalBrown;
+   const body=ball(chicken?.42:.64,coat,0,chicken?.54:.77,0,g);body.scale.set(chicken?.8:1.15,1,chicken?.95:.72);
+   const head=ball(chicken?.31:.39,coat,0,chicken?.86:1.01,chicken?.32:.5,g);
+   for(const side of [-1,1]){const eye=ball(.07,dark,side*(chicken?.15:.2),chicken? .93:1.13,chicken?.59:.81,g);eye.scale.z=.55}
+   if(chicken){const b=mesh(new THREE.ConeGeometry(.13,.25,4),beak,0,.8,.67,g);b.rotation.x=Math.PI/2;ball(.11,mat('#d9685e'),0,1.19,.34,g)}
+   else{const nose=ball(.2,pig?animalPink:dark,0,.96,.87,g);nose.scale.z=.42;for(const side of [-1,1]){const ear=ball(.18,coat,side*.28,1.34,.41,g);ear.scale.set(.7,1.1,.6)}}
+   for(const side of [-1,1])for(const fore of [-1,1]){const foot=box(.17,.33,.17,coat,side*.28,.23,fore*.32,g);foot.castShadow=false}
+   const start=new THREE.Vector3(x,0,z);herd.push({g,start,phase:herd.length*2.4,speed:chicken?.34:.22,range:chicken?1.5:2.1});
+ }
+ animal('chicken',-23,9);animal('chicken',-21,11);animal('pig',24,10);animal('sheep',-25,-13);animal('sheep',24,-15);
+ function animateAnimals(t){const sec=t*.001;for(const a of herd){const theta=sec*a.speed+a.phase;a.g.position.set(a.start.x+Math.sin(theta)*a.range,Math.abs(Math.sin(theta*6))*.025,a.start.z+Math.cos(theta*.73)*a.range*.58);a.g.rotation.y=Math.atan2(Math.cos(theta),-Math.sin(theta*.73)*.73)}requestAnimationFrame(animateAnimals)}
+ requestAnimationFrame(animateAnimals);
+ hud.innerHTML='🌾 <b>FARM VILLAGE 3D</b><small style="display:block;font-weight:400;opacity:.85">TASK 10 · หมู่บ้านมีชีวิต</small>';
+})();
+// Lightweight CC0 grass and shrubs, limited to safe verge locations.
+(async function livingVillageAssets(){
+ try{
+  const {GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');
+  const loader=new GLTFLoader(),root='https://cdn.jsdelivr.net/gh/Hidencod/tge-assets@main/packs/nature-kit/';
+  const spots=[['grass-large.glb',-18,19,.6],['grass-large.glb',-24,-18,.55],['plant-bushdetailed.glb',-20,20,1.1],['plant-bushlarge.glb',23,23,1.3],['plant-bushdetailed.glb',-25,4,1.05],['grass-large.glb',19,24,.65]];
+  for(const [name,x,z,height] of spots){await new Promise(resolve=>loader.load(root+name,g=>{const o=g.scene,b=new THREE.Box3().setFromObject(o),h=b.getSize(new THREE.Vector3()).y;if(h>.001){o.scale.setScalar(height/h);o.updateMatrixWorld(true);o.position.set(x,-new THREE.Box3().setFromObject(o).min.y,z);scene.add(o)}resolve()},undefined,()=>resolve()))}
+ }catch(e){console.warn('TASK10 optional GLB landscape unavailable',e)}
+})();
