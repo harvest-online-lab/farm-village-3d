@@ -23,8 +23,8 @@ const right=box(3.75,.35,5.25,roof,1.35,3.85,0,group);right.rotation.z=-Math.PI/
 box(.95,2,.12,wood,0,1.02,2.36,group);box(.85,.8,.12,mat('#8bd5e6'),-1.55,1.95,2.36,group);box(.85,.8,.12,mat('#8bd5e6'),1.55,1.95,2.36,group);
 box(.12,.85,.17,wood,-1.55,1.95,2.47,group);box(.12,.85,.17,wood,1.55,1.95,2.47,group);
 box(1.2,.13,.45,wood,0,2.6,2.6,group);
-box(.8,1.3,.8,mat('#b98a67'),1.55,4.15,-1,group)}
-house(-12,-16,'#f5d6a1');house(12,-16,'#d4e0ba');house(-13,11,'#f0c3a5');
+box(.8,1.3,.8,mat('#b98a67'),1.55,4.15,-1,group);return group}
+const originalHouses=[];originalHouses.push(house(-12,-16,'#f5d6a1'),house(12,-16,'#d4e0ba'),house(-13,11,'#f0c3a5'));
 function tree(x,z,s=1){const group=new THREE.Group();group.position.set(x,0,z);group.scale.setScalar(s);scene.add(group);
 mesh(new THREE.CylinderGeometry(.25,.36,2.6,7),wood,0,1.3,0,group);
 ball(1.35,leaves[0],0,3.2,0,group);ball(1.1,leaves[1],-.8,2.9,.25,group);ball(1.08,leaves[2],.6,3.55,-.3,group)}
@@ -240,3 +240,40 @@ async function importKenneyModels(){
   }catch(e){console.warn('GLTFLoader unavailable; procedural scene preserved',e);status.textContent='โหลดโมเดลไม่สำเร็จ: '+String(e?.message||e).slice(0,95);setTimeout(()=>status.remove(),5500)}
 }
 importKenneyModels();
+
+
+/* TASK 08: village buildings, cobblestone roads, garden fences — real GLB meshes */
+async function loadVillage08(){
+ const root='https://cdn.jsdelivr.net/gh/Hidencod/tge-assets@main/packs/';
+ const note=document.createElement('div');note.style.cssText='position:fixed;bottom:174px;right:12px;z-index:8;background:#173e38e9;color:white;border-radius:9px;padding:6px 10px;font:11px system-ui;pointer-events:none';note.textContent='🏘️ กำลังโหลดหมู่บ้าน TASK 08';document.body.append(note);
+ try{
+  const {GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');const loader=new GLTFLoader();
+  const cache=new Map();
+  async function asset(path){if(!cache.has(path))cache.set(path,new Promise((resolve,reject)=>loader.load(root+path,g=>resolve(g.scene),undefined,reject)));return (await cache.get(path)).clone(true)}
+  async function put(path,x,z,height,rot=0){try{const obj=await asset(path);const b=new THREE.Box3().setFromObject(obj);const sz=b.getSize(new THREE.Vector3());if(sz.y<.01)throw Error('empty');
+   obj.scale.setScalar(height/sz.y);obj.rotation.y=rot;obj.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(obj);obj.position.set(x,-bb.min.y,z);
+   obj.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=true}});scene.add(obj);return obj;
+  }catch(e){console.warn('Village GLB:',path,e);return null}}
+  let built=0;
+  // Village homes: replace old primitives only after each building loads.
+  const homes=[[-12,-16,'a'],[12,-16,'d'],[-13,11,'g']];
+  for(let i=0;i<homes.length;i++){const [x,z,type]=homes[i];const obj=await put('city-kit-suburban/building-type-'+type+'.glb',x,z,5.4,Math.PI);if(obj){originalHouses[i].visible=false;built++}}
+  // Market building and market-side shop; keep working fruit stall as a fallback.
+  const shop=await put('city-kit-suburban/building-type-j.glb',-15,4,5.1,Math.PI/2);if(shop)built++;
+  // Real wooden fencing around the farm, with gaps for walking.
+  const fencePath='nature-kit/fence-simple.glb';
+  for(const [x,z,rot] of [[4,3,0],[8,3,0],[12,3,0],[16,3,0],[20,3,0],[4,20,0],[8,20,0],[12,20,0],[16,20,0],[20,20,0],[3,7,Math.PI/2],[3,11,Math.PI/2],[3,15,Math.PI/2],[21,7,Math.PI/2],[21,11,Math.PI/2],[21,15,Math.PI/2]]){if(await put(fencePath,x,z,1.15,rot))built++}
+  // Curved-looking village path: cobblestone stepping stones and borders along two existing roads.
+  const stonePath='city-kit-suburban/path-stones-messy.glb';
+  const points=[];for(let z=-29;z<=27;z+=3.4)points.push([Math.sin(z*.12)*.42,z,0]);
+  for(let x=-28;x<=28;x+=3.4)points.push([x,-7+Math.sin(x*.11)*.3,Math.PI/2]);
+  for(let i=0;i<points.length;i++){const [x,z,rot]=points[i];if(await put(stonePath,x,z,.16,rot))built++}
+  // Village square decoration, bridges, trees and flowers near path.
+  for(const [x,z] of [[-6,-4],[-10,-6],[6,-10],[14,-9]])if(await put('nature-kit/flower-yellowa.glb',x,z,.7))built++;
+  if(await put('nature-kit/bridge-wood.glb',-1,13,1.1,Math.PI/2))built++;
+  note.textContent='🏡 TASK 08 · โหลดโมเดล '+built+' จุด';
+  setTimeout(()=>note.remove(),6000);
+ }catch(e){console.warn('TASK08 loader error',e);note.textContent='TASK 08: '+String(e?.message||e).slice(0,90);setTimeout(()=>note.remove(),10000)}
+}
+loadVillage08();
+hud.innerHTML='🌾 <b>FARM VILLAGE 3D</b><small style="display:block;font-weight:400;opacity:.85">TASK 08 · หมู่บ้านและถนนหิน</small>';
