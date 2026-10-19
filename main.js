@@ -227,7 +227,7 @@ async function importKenneyModels(){
       status.textContent='✓ ตัวละคร Kenney CC0';
     }
     const positions=[[-20,-22],[-22,14],[20,14],[19,-22],[-23,-1],[23,0],[8,21],[-5,24]];
-    const models=['nature-kit/tree-default.glb','nature-kit/tree-oak.glb','nature-kit/tree-pine.glb'];
+    const models=['nature-kit/tree-default.glb','nature-kit/tree-oak.glb','nature-kit/tree-pinedefaulta.glb'];
     let loaded=0;
     for(let i=0;i<positions.length;i++){
       const m=await place(models[i%models.length],positions[i],4.2+(i%3)*.7);
