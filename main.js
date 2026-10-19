@@ -114,3 +114,40 @@ const soundButton=document.createElement('button');soundButton.textContent='♫ 
 let audioCtx=null,tuneTimer=null,noteIndex=0;const melody=[0,2,4,7,4,2,0,-3,0,2,4,9,7,4,2,-1];const baseFreq=261.63;
 function playNote(){if(!audioCtx)return;const t=audioCtx.currentTime;const semitone=melody[noteIndex++%melody.length];const oscillator=audioCtx.createOscillator(),gain=audioCtx.createGain();oscillator.type='sine';oscillator.frequency.value=baseFreq*Math.pow(2,semitone/12);gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(.075,t+.035);gain.gain.exponentialRampToValueAtTime(.0001,t+.45);oscillator.connect(gain).connect(audioCtx.destination);oscillator.start(t);oscillator.stop(t+.48)}
 soundButton.onclick=async()=>{if(audioCtx){clearInterval(tuneTimer);await audioCtx.close();audioCtx=null;soundButton.textContent='♫ เปิดเพลง';return}try{audioCtx=new (window.AudioContext||window.webkitAudioContext)();await audioCtx.resume();playNote();tuneTimer=setInterval(playNote,520);soundButton.textContent='♫ ปิดเพลง'}catch(e){soundButton.textContent='เสียงไม่รองรับ'}};
+
+
+/* TASK 05: character art pass + mobile HUD redesign. All new geometry is original. */
+const playerSkin=mat('#e8b98e'),hairMat=mat('#6e4935'),shirtTrim=mat('#e8d7aa'),bootMat=mat('#624d43');
+function characterDetail(){
+  // soften silhouette: face, hair, sleeves, belt, boots and backpack
+  ball(.37,playerSkin,0,2.18,.08,player).scale.set(1,.95,.9);
+  const hair=ball(.39,hairMat,0,2.43,-.06,player);hair.scale.set(1,.36,.9);
+  for(const x of [-.15,.15])ball(.035,mat('#322d29'),x,2.24,.395,player);
+  const nose=ball(.045,playerSkin,0,2.14,.45,player);nose.scale.z=.7;
+  box(.82,.13,.57,shirtTrim,0,1.84,0,player);
+  box(.87,.16,.6,bootMat,0,.9,0,player);
+  for(const x of [-.23,.23])box(.31,.24,.48,bootMat,x,.13,.09,player);
+  box(.86,.16,.58,bootMat,0,1.01,0,player);
+  box(.44,.73,.21,mat('#ac7a4b'),0,1.35,-.39,player);
+  box(.52,.12,.1,shirtTrim,0,1.62,-.52,player);
+}
+characterDetail();
+const uiCSS=document.createElement('style');uiCSS.textContent=`
+  .fv-hud{font-family:system-ui,-apple-system,sans-serif;color:#fff}
+  .fv-glass{background:linear-gradient(145deg,#153e35ed,#12342cdb)!important;border:1px solid #e8e0bd70!important;box-shadow:0 8px 28px #132b2666!important;backdrop-filter:blur(7px)}
+  .fv-action{background:linear-gradient(#fff0be,#edc982)!important;border:2px solid #fff5d0!important;box-shadow:0 4px 0 #9b7848,0 7px 17px #0002!important}
+  @media(max-width:700px){.fv-smallmap{transform:scale(.68);transform-origin:top right;top:84px!important;right:10px!important}.fv-music{top:174px!important;right:12px!important}.fv-camera{top:219px!important;right:12px!important;font-size:10px!important}.fv-count{top:14px!important;right:12px!important;font-size:12px!important}.fv-hotbar{bottom:8px!important;left:50%!important;transform:translateX(-50%) scale(.84)!important}.fv-pad{bottom:22px!important;left:12px!important;transform:scale(.83);transform-origin:bottom left}.fv-plant{bottom:31px!important;right:14px!important;padding:12px 14px!important;font-size:15px!important}.fv-title{font-size:12px!important;top:12px!important;left:12px!important;max-width:57vw!important}}
+`;document.head.append(uiCSS);
+hud.classList.add('fv-hud','fv-glass','fv-title');hud.innerHTML='🌾 <b>FARM VILLAGE</b> <span style="color:#ffe8a7">3D</span><small style="display:block;font-weight:400;opacity:.88">หมู่บ้านแห่งความสุข · TASK 05</small>';
+tip.classList.add('fv-hud','fv-glass','fv-count');overlay.classList.add('fv-smallmap');soundButton.classList.add('fv-glass','fv-music');cameraHint.classList.add('fv-glass','fv-camera');inventory.classList.add('fv-hotbar');pad.classList.add('fv-pad');plant.classList.add('fv-action','fv-plant');
+for(const button of pad.querySelectorAll('button'))button.classList.add('fv-action');
+const statusBar=document.createElement('div');statusBar.className='fv-glass fv-hud';statusBar.style.cssText='position:fixed;z-index:4;left:12px;top:84px;padding:6px 10px;border-radius:12px;font-size:11px;pointer-events:none';statusBar.textContent='☀️ เช้า 08:00   ♥ 100   ⚡ 100';document.body.append(statusBar);
+const oldAudio=soundButton.textContent;soundButton.textContent='🎵 เพลง';
+// Extra garden dressing: trellises, stacked pumpkins and a small well.
+const pumpkinMat=mat('#df863e'),vineMat=mat('#4b9855');
+for(let i=0;i<12;i++){const x=7+(i%6)*1.65,z=23+Math.floor(i/6)*1.45;const g=ball(.42,pumpkinMat,x,.37,z);g.scale.set(1,.75,1);box(.09,.23,.09,vineMat,x,.77,z)}
+function well(x,z){const ring=new THREE.Group();ring.position.set(x,0,z);scene.add(ring);for(let i=0;i<12;i++){const a=i*Math.PI/6;box(.65,.8,.25,stone,Math.cos(a)*1.08,.48,Math.sin(a)*1.08,ring).rotation.y=-a}for(const side of [-1,1])box(.14,2.7,.14,wood,side*1.05,1.7,0,ring);box(2.7,.25,2.5,roof,0,3.13,0,ring);cylinder(.68,.68,.04,waterMat,0,.44,0,ring,18)}
+well(-20,7);
+// Rock-lined garden border and flowerpots
+for(let i=0;i<22;i++){const x=-4+i*.9;ball(.18,stone,x,.12,16)}
+for(let i=0;i<10;i++){const x=-14+(i%5)*.85,z=-21+Math.floor(i/5)*.9;cylinder(.25,.19,.38,mat('#bd8058'),x,.2,z);ball(.32,leaves[i%3],x,.58,z)}
