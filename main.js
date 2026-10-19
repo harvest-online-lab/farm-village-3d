@@ -151,3 +151,47 @@ well(-20,7);
 // Rock-lined garden border and flowerpots
 for(let i=0;i<22;i++){const x=-4+i*.9;ball(.18,stone,x,.12,16)}
 for(let i=0;i<10;i++){const x=-14+(i%5)*.85,z=-21+Math.floor(i/5)*.9;cylinder(.25,.19,.38,mat('#bd8058'),x,.2,z);ball(.32,leaves[i%3],x,.58,z)}
+
+
+/* TASK 06 — visually richer handcrafted models and unobstructed mobile HUD */
+const cream=mat('#fff0d3'),gold=mat('#dca750'),terracotta=mat('#bf6b4b'),leafBright=mat('#69b75c');
+function cottageDetail(x,z){const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+  // porch steps, roof ridge, flower boxes, shutters, warm window glow
+  box(1.6,.2,.85,stone,0,.11,3.02,g);box(1.2,.16,.6,stone,0,.25,2.72,g);
+  box(5.5,.2,.24,terracotta,0,4.86,0,g);
+  for(const wx of [-1.55,1.55]){box(.17,1,.16,wood,wx-.56,1.95,2.5,g);box(.17,1,.16,wood,wx+.56,1.95,2.5,g);box(1.3,.22,.6,wood,wx,1.46,2.7,g);
+    for(let i=0;i<3;i++){ball(.18,leafBright,wx-.37+i*.36,1.67,2.73,g);ball(.095,i%2?flowers[1]:flowers[0],wx-.37+i*.36,1.86,2.76,g)}
+  }
+  box(.2,2.6,.2,wood,-2.32,1.32,2.38,g);box(.2,2.6,.2,wood,2.32,1.32,2.38,g);
+  for(const px of [-1.8,1.8]){const lantern=box(.25,.45,.25,gold,px,2.4,2.62,g);lantern.material.emissive=new THREE.Color('#c2873d');lantern.material.emissiveIntensity=.2}
+}
+for(const [x,z] of [[-12,-16],[12,-16],[-13,11]])cottageDetail(x,z);
+// Friendly proportions: rounded face, cheeks, hair tufts, collar and brim accent
+const cheek=mat('#df9a8a');
+for(const side of [-1,1]){const e=ball(.12,playerSkin,side*.35,2.16,.12,player);e.scale.set(.55,1,.7);const ch=ball(.07,cheek,side*.235,2.10,.39,player);ch.scale.z=.25}
+box(.92,.09,.9,shirtTrim,0,2.52,0,player);
+for(const x of [-.28,.28])ball(.13,hairMat,x,2.43,-.15,player);
+box(.12,.32,.08,gold,.33,1.37,.31,player);
+const strap=box(.12,.8,.1,bootMat,-.24,1.43,.34,player);strap.rotation.z=-.18;
+// More substantial market dressing
+for(let i=0;i<5;i++){const x=-10+i*.75;box(.54,.35,.54,wood,x,.33,6.5);ball(.25,i%2?gold:terracotta,x,.67,6.5)}
+// Animate the windmill using a safe animation frame hook.
+const previousFrame=frame;
+function tickWindmill(){rotor.rotation.z+=.0025;requestAnimationFrame(tickWindmill)}
+requestAnimationFrame(tickWindmill);
+// UI: avoid overlap between controls and hotbar on narrow portrait displays
+const ui6=document.createElement('style');ui6.textContent=`
+@media(max-width:700px){
+ .fv-pad{bottom:16px!important;left:10px!important;transform:scale(.76)!important;transform-origin:bottom left!important}
+ .fv-hotbar{bottom:128px!important;left:50%!important;transform:translateX(-50%) scale(.84)!important;z-index:7!important}
+ .fv-plant{bottom:24px!important;right:12px!important;min-width:94px!important}
+ .fv-title{max-width:56vw!important;padding:9px 11px!important}
+ .fv-count{padding:8px!important}
+ .fv-camera{display:none!important}
+ .fv-smallmap{top:72px!important;transform:scale(.62)!important}
+ .fv-music{top:157px!important;padding:7px 10px!important}
+}
+@media(max-width:380px){.fv-hotbar{bottom:115px!important;transform:translateX(-50%) scale(.75)!important}.fv-pad{transform:scale(.69)!important}}
+`;document.head.append(ui6);
+hud.innerHTML='🌾 <b>FARM VILLAGE 3D</b><small style="display:block;font-weight:400;opacity:.85">TASK 06 · หมู่บ้านฟาร์ม</small>';
+cameraHint.style.display='none';
